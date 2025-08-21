@@ -1,0 +1,23 @@
+# Ambientes Virtuais
+# Ignora a pasta do ambiente virtual criada pelo venv
+/venv/
+/.venv/
+
+# Cache e artefatos de build do Python
+# Ignora a pasta de cache do Python e arquivos compilados
+__pycache__/
+*.pyc
+
+# Arquivos e pastas de testes e cobertura de código
+# Ignora a pasta de cache do Pytest e o relatório de cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ferramentas de linting e formatação (Ruff, neste caso)
+# Ignora a pasta de cache do linter/formatter
+.ruff_cache/
+
+# Configurações específicas do editor
+# Geralmente não devem ser versionadas
+.vscode/

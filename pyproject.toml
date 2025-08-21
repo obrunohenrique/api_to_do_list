@@ -1,0 +1,27 @@
+[project]
+name = "api_todolist"
+version = "0.1.0"
+description = ""
+authors = ['Bruno <bhfp@cin.ufpe.br>']
+
+
+[tool.ruff]
+line-length = 79
+extend-exclude = ['migrations']
+
+[tool.ruff.lint]
+preview = true
+select = ['I', 'F', 'E', 'W', 'PL', 'PT']
+
+[tool.pytest.ini_options]
+pythonpath = "."
+addopts = '-p no:warnings'
+
+[tool.taskipy.tasks]
+lint = 'ruff check'
+pre_format = 'ruff check --fix'
+format = 'ruff format'
+run = 'fastapi dev api_todolist/app.py'
+pre_test = 'task lint'
+test = 'pytest -s -x --cov=api_todolist -vv'
+post_test = 'coverage html'
