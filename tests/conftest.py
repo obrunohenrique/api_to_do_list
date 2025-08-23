@@ -5,21 +5,48 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import StaticPool
 
 from api_todolist.app import app
-from api_todolist.models import table_registry
+from api_todolist.database import get_session
+from api_todolist.models import User, table_registry
 
 
 @pytest.fixture
-def client():
-    return TestClient(app)
+def client(session):
+    def get_session_override():
+        return session
+
+    # A app.dependency_overrides precisa ser definida antes de criar o cliente
+    app.dependency_overrides[get_session] = get_session_override
+
+    # Cria e retorna a instância do cliente
+    client = TestClient(app)
+    yield client
+
+    # Limpeza
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def user(session: Session):
+    user = User(username="test", email="test@gmail.com", password="testest")
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    return user
 
 
 # arrange para preparar testes com o bd
 @pytest.fixture
 def session():
     # cria conecção com o bd(liga)
-    engine = create_engine("sqlite:///:memory:")
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
 
     # cria no bd as tabelas que criamos
     table_registry.metadata.create_all(engine)
@@ -39,6 +66,8 @@ def _mock_db_time(model, time=datetime(2025, 8, 22)):
         # se tiver o atributo -> seta o tempo mockado
         if hasattr(target, "created_at"):
             target.created_at = time
+        if hasattr(target, "update_at"):
+            target.update_at = time
 
     # quando o teste vai inserir no bd, chama a função pra add o tempo mockado
     event.listen(model, "before_insert", fake_time_hook)
