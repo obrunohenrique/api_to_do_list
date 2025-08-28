@@ -54,17 +54,13 @@ def test_error_create_user_conflict_email(client, user):
     assert response.status_code == HTTPStatus.CONFLICT
 
 
-def test_read_users(client):
-    response = client.get("/users")
-
-    assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"users": []}
-
-
-def test_read_users_with_user(client, user):
+def test_read_users_with_user(client, user, token):
     user_schema = UserPublic.model_validate(user).model_dump()
 
-    response = client.get("/users")
+    response = client.get(
+        "/users",
+        headers={"Authorization": f"Bearer {token}"},
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"users": [user_schema]}
@@ -84,7 +80,7 @@ def test_error_read_user_for_id(client):
     assert response.status_code == HTTPStatus.NOT_FOUND
 
 
-def test_update_user(client, user):
+def test_update_user(client, user, token):
     response = client.put(
         "/users/1",
         json={
@@ -92,6 +88,7 @@ def test_update_user(client, user):
             "email": "bob@example.com",
             "password": "123",
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response.status_code == HTTPStatus.OK
@@ -102,7 +99,7 @@ def test_update_user(client, user):
     }
 
 
-def test_error_intregrity_update_user(client, user):
+def test_error_intregrity_update_user(client, user, token):
     client.post(
         "/users",
         json={
@@ -119,32 +116,37 @@ def test_error_intregrity_update_user(client, user):
             "email": "bob@example.com",
             "password": "123",
         },
+        headers={"Authorization": f"Bearer {token}"},
     )
 
     assert response_update.status_code == HTTPStatus.CONFLICT
 
 
-def test_error_not_id_update_user(client):
-    response = client.put(
-        "users/12",
-        json={
-            "username": "bob",
-            "email": "bob@example.com",
-            "password": "123",
-        },
+def test_delete_user(client, user, token):
+    response = client.delete(
+        f"/users/{user.id}", headers={"Authorization": f"Bearer {token}"}
     )
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-
-
-def test_delete_user(client, user):
-    response = client.delete("/users/1")
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"message": "user deleted"}
 
 
-def test_error_delete_user(client):
-    response = client.delete("/users/12")
+def test_error_delete_user(client, token):
+    response = client.delete(
+        "/users/12", headers={"Authorization": f"Bearer {token}"}
+    )
 
-    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.status_code == HTTPStatus.FORBIDDEN
+
+
+def test_get_token(client, user):
+    response = client.post(
+        "/token",
+        data={"username": user.email, "password": user.clean_password},
+    )
+
+    token = response.json()
+
+    assert response.status_code == HTTPStatus.OK
+    assert token["token_type"] == "Bearer"
+    assert "acess_token" in token
